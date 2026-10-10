@@ -454,13 +454,42 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { closeModals(); return; }
   if (G.modal) return;
   keys.add(e.code);
+  const ks = keySeen[e.code] || (keySeen[e.code] = { rep: false });
+  ks.t = performance.now(); if (e.repeat) ks.rep = true;
   if (e.code === 'KeyB') openBook();
   if (e.code === 'KeyF') toggleFollow();
   if (e.code === 'KeyR' && G.started && !G.deadT) { G.pl.dead = true; die('kill'); }
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
 });
-window.addEventListener('keyup', (e) => keys.delete(e.code));
-window.addEventListener('blur', () => keys.clear());
+window.addEventListener('keyup', (e) => {
+  keys.delete(e.code); delete keySeen[e.code];
+  if (e.key === 'Meta') resetInput();      // macOS sends no keyup for other keys while ⌘ is held
+});
+// a key whose keyup never arrived must not keep the player walking forever:
+// - lost focus / hidden page / page left: forget everything
+// - a held key keeps sending repeat keydowns; when they stop, the key was released
+const keySeen = {};
+function resetInput() {
+  keys.clear();
+  for (const k of Object.keys(keySeen)) delete keySeen[k];
+  touch.stickId = null; touch.lookId = null; touch.mx = touch.mz = 0; touch.jump = false;
+  const st = document.getElementById('stick'); if (st) st.style.display = 'none';
+  const jb2 = document.getElementById('bJump'); if (jb2) jb2.classList.remove('on');
+  cam.spin = 0; cam.zoom = 0;
+  document.querySelectorAll('#camctl button.on').forEach((b) => b.classList.remove('on'));
+  drag = null;
+}
+window.addEventListener('blur', resetInput);
+document.addEventListener('visibilitychange', () => { if (document.hidden) resetInput(); });
+window.addEventListener('pagehide', resetInput);
+function pruneKeys() {
+  const now = performance.now();
+  for (const code of [...keys]) {
+    const k = keySeen[code];
+    if (!k) continue;
+    if ((k.rep && now - k.t > 600) || (!k.rep && now - k.t > 1500)) { keys.delete(code); delete keySeen[code]; }
+  }
+}
 
 let drag = null;
 canvasEl.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -469,11 +498,11 @@ canvasEl.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'touch') {
     if (e.clientX < window.innerWidth * 0.42 && touch.stickId === null) { touch.stickId = e.pointerId; touch.ox = e.clientX; touch.oy = e.clientY; showStick(e.clientX, e.clientY, 0, 0); }
     else if (touch.lookId === null) { touch.lookId = e.pointerId; touch.lx = e.clientX; touch.ly = e.clientY; }
-    canvasEl.setPointerCapture(e.pointerId);
+    try { canvasEl.setPointerCapture(e.pointerId); } catch (er) { /* the pointer is already gone */ }
     return;
   }
   drag = { x: e.clientX, y: e.clientY };
-  canvasEl.setPointerCapture(e.pointerId);
+  try { canvasEl.setPointerCapture(e.pointerId); } catch (er) { /* the pointer is already gone */ }
 });
 canvasEl.addEventListener('pointermove', (e) => {
   if (e.pointerType === 'touch') {
@@ -498,14 +527,21 @@ const endPointer = (e) => {
 };
 canvasEl.addEventListener('pointerup', endPointer);
 canvasEl.addEventListener('pointercancel', endPointer);
+canvasEl.addEventListener('lostpointercapture', endPointer);
+// backup: the finger may be lifted over something else (a window that just opened); end it wherever it lands
+window.addEventListener('pointerup', (e) => { if (e.pointerId === touch.stickId || e.pointerId === touch.lookId) endPointer(e); }, true);
+window.addEventListener('pointercancel', (e) => { if (e.pointerId === touch.stickId || e.pointerId === touch.lookId) endPointer(e); }, true);
+// and when no finger is on the screen at all, nothing can still be held
+for (const ev of ['touchend', 'touchcancel']) window.addEventListener(ev, (e) => { if (!e.touches || e.touches.length === 0) resetInput(); }, true);
 canvasEl.addEventListener('wheel', (e) => { cam.dist = Math.min(40, Math.max(5, cam.dist * (e.deltaY > 0 ? 1.1 : 0.9))); e.preventDefault(); }, { passive: false });
 const clampPitch = (p) => Math.min(1.35, Math.max(-0.35, p));
 function showStick(x, y, dx, dy) { const s = $('stick'); s.style.display = 'block'; s.style.left = x - 60 + 'px'; s.style.top = y - 60 + 'px'; $('knob').style.transform = `translate(${dx}px, ${dy}px)`; }
 const jb = $('bJump');
 jb.addEventListener('pointerdown', (e) => { e.preventDefault(); sfx.unlock(); touch.jump = true; jb.classList.add('on'); });
-for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) jb.addEventListener(ev, () => { touch.jump = false; jb.classList.remove('on'); });
+for (const ev of ['pointerup', 'pointercancel', 'pointerleave', 'lostpointercapture']) jb.addEventListener(ev, () => { touch.jump = false; jb.classList.remove('on'); });
 
 function inputVector() {
+  pruneKeys();
   let f = 0, r = 0;
   if (keys.has('KeyW') || keys.has('ArrowUp')) f += 1;
   if (keys.has('KeyS') || keys.has('ArrowDown')) f -= 1;
@@ -861,7 +897,7 @@ function avatarIcon(id) {
 let bookTab = 'plaza';
 function openBook() {
   if (!G.started) return;
-  G.modal = 'book'; $('book').hidden = false;
+  G.modal = 'book'; $('book').hidden = false; resetInput();
   if (G.wid) bookTab = G.wid;
   renderBook();
 }
@@ -893,7 +929,7 @@ function renderBook() {
 let kpPart = null, kpVal = '';
 function openKeypad(p) {
   kpPart = p; kpVal = ''; G.modal = 'keypad'; $('keypad').hidden = false;
-  keys.clear(); touch.mx = touch.mz = 0; touch.jump = false;
+  resetInput();
   $('kpTitle').textContent = tr().keypad; $('kpEnter').textContent = tr().enter; $('kpClear').textContent = tr().clear;
   renderKp();
 }
@@ -921,7 +957,7 @@ function closeModals() {
   for (const id of ['book', 'keypad', 'help']) $(id).hidden = true;
   if (G.modal === 'keypad') G.prevTouch = new Set(G.pl.touch.map((p) => p.id));   // don't reopen while still standing on it
   G.modal = null;
-  keys.clear();
+  resetInput();
 }
 document.querySelectorAll('.closeX').forEach((b) => b.onclick = () => { closeModals(); sfx.play('click'); });
 for (const id of ['book', 'keypad', 'help']) $(id).addEventListener('pointerdown', (e) => { if (e.target.id === id) closeModals(); });
@@ -961,7 +997,7 @@ function startGame() {
 $('bBook').onclick = () => { sfx.play('click'); openBook(); };
 $('bHome').onclick = () => { sfx.play('click'); if (G.started && G.wid !== 'plaza') travel('plaza'); else if (G.started) { G.cp = { x: WORLD.plaza.spawn[0], y: WORLD.plaza.spawn[1], z: WORLD.plaza.spawn[2], yaw: 0 }; spawnPlayer(); } };
 $('bReset').onclick = () => { if (G.started && !G.deadT) { G.pl.dead = true; die('kill'); } };
-$('bHelp').onclick = () => { sfx.play('click'); renderHelp(); G.modal = 'help'; $('help').hidden = false; };
+$('bHelp').onclick = () => { sfx.play('click'); renderHelp(); G.modal = 'help'; $('help').hidden = false; resetInput(); };
 $('bSound').onclick = () => { save.sound = !save.sound; persist(); applySound(); };
 // on-screen camera buttons: hold to keep turning / zooming
 for (const [id, k, v] of [['camL', 'spin', 1], ['camR', 'spin', -1], ['zoomIn', 'zoom', -1], ['zoomOut', 'zoom', 1]]) {
