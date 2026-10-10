@@ -58,6 +58,22 @@ export const FRUITS = [
   { id: 'spaceorange', w: 'sky', tier: 2, shape: 'orange', c: 0xff9a2a, acc: 'helmet', name: { zh: '太空橘子', en: 'Space Orange' }, hint: { zh: '北邊的橋上有旋轉棒，跳過它們！', en: 'The north bridge has spinning bars. Jump over them!' } },
   { id: 'thunderlemon', w: 'sky', tier: 3, shape: 'lemon', c: 0xffe82a, acc: 'bolt', name: { zh: '雷電檸檬', en: 'Thunder Lemon' }, hint: { zh: '西邊幽靈島往北，一路踩消失方塊到雷雲上。', en: 'From the ghost island, climb the vanishing blocks north to the storm cloud.' } },
   { id: 'galaxy', w: 'sky', tier: 4, shape: 'galaxy', c: 0x5a2aff, name: { zh: '銀河果', en: 'Galaxy Fruit' }, hint: { zh: '不可能之塔的頂端。沒有存檔點，祝你好運。', en: 'At the top of the Tower of Impossible. No checkpoints. Good luck.' } },
+  // Fast Food Street (not fruits: cat 'food')
+  { id: 'fries', w: 'fastfood', cat: 'food', tier: 0, shape: 'fries', c: 0xe8322c, name: { zh: '薯條', en: 'Fries' }, hint: { zh: '餐車窗口的檯子上。', en: 'On the counter of the food truck.' } },
+  { id: 'burger', w: 'fastfood', cat: 'food', tier: 0, shape: 'burger', c: 0xd8902a, name: { zh: '漢堡', en: 'Burger' }, hint: { zh: '店外面的小餐桌上。', en: 'On the little table outside.' } },
+  { id: 'soda', w: 'fastfood', cat: 'food', tier: 1, shape: 'soda', c: 0x3a7aff, name: { zh: '汽水', en: 'Soda' }, hint: { zh: '漢堡穀倉的屋頂，旁邊有梯子。', en: 'On the Burger Barn roof. There is a ladder on its side.' } },
+  { id: 'hotdog', w: 'fastfood', cat: 'food', tier: 1, shape: 'hotdog', c: 0xd84a2a, name: { zh: '熱狗', en: 'Hot Dog' }, hint: { zh: '沿著熱狗小屋招牌柱的階梯繞上去。', en: 'Climb the steps around the Hot Dog Hut sign pole.' } },
+  { id: 'donut', w: 'fastfood', cat: 'food', tier: 1, shape: 'donut', c: 0xff8ac0, name: { zh: '甜甜圈', en: 'Donut' }, hint: { zh: '甜甜圈屋的屋頂。旁邊的彈跳墊會幫你！', en: 'On the Donut Dome roof. The bounce pad next to it helps!' } },
+  { id: 'pizza', w: 'fastfood', cat: 'food', tier: 2, shape: 'pizza', c: 0xffc83a, name: { zh: '披薩', en: 'Pizza' }, hint: { zh: '披薩夥伴後面的儲藏室沒有門……後牆一直飄出披薩香。', en: 'The storeroom behind Pizza Pals has no door... but its back wall smells of pizza.' } },
+  { id: 'taco', w: 'fastfood', cat: 'food', tier: 2, shape: 'taco', c: 0xf5c040, name: { zh: '塔可', en: 'Taco' }, hint: { zh: '按下得來速的點餐按鈕，塔可鎮的車庫只開 4 秒！', en: 'Press the drive-thru button; the Taco Town garage opens for just 4 seconds!' } },
+  { id: 'icecream', w: 'fastfood', cat: 'food', tier: 2, shape: 'icecream', c: 0xff9ac0, name: { zh: '冰淇淋', en: 'Ice Cream' }, hint: { zh: '爬上看板，搭移動平台到第二塊看板。', en: 'Climb onto the billboard and ride the moving platform to the second one.' } },
+  { id: 'chicken', w: 'fastfood', cat: 'food', tier: 3, shape: 'drumstick', c: 0xd8862a, name: { zh: '炸雞腿', en: 'Fried Chicken' }, hint: { zh: '從漢堡穀倉屋頂，踩著會消失的方塊跳到咯咯雞小屋的高屋頂。', en: 'From the Burger Barn roof, cross the vanishing blocks to the tall Cluck Shack roof.' } },
+  { id: 'goldenburger', w: 'fastfood', cat: 'food', tier: 4, shape: 'burger', c: 0xffc928, gold: true, acc: 'crown', name: { zh: '黃金漢堡', en: 'Golden Burger' }, hint: { zh: '霓虹塔的最頂端。沒有存檔點。', en: 'At the very top of the neon tower. No checkpoints.' } },
+];
+FRUITS.forEach((f) => { f.cat = f.cat || 'fruit'; });
+export const CATS = [
+  { id: 'fruit', icon: '🍎', zh: '水果', en: 'Fruits' },
+  { id: 'food', icon: '🍔', zh: '速食', en: 'Fast food' },
 ];
 
 export const FRUIT = Object.fromEntries(FRUITS.map((f) => [f.id, f]));
@@ -150,7 +166,7 @@ export const WORLDS = [
       // paths
       L.deco(0, 0.03, 22, 8, 0.06, 30, C.stone2, { mat: 'stone' });
       L.deco(0, 0.03, -40, 8, 0.06, 50, C.stone2, { mat: 'stone' });
-      L.deco(0, 0.03, -52, 90, 0.06, 6, C.stone2, { mat: 'stone' });
+      L.deco(-12, 0.03, -52, 114, 0.06, 6, C.stone2, { mat: 'stone' });
       L.deco(26, 0.03, 10, 34, 0.06, 6, C.stone2, { mat: 'stone' });
       L.check(0, 0.2, 40, 8);
       L.sign(-7, 0, 44, 's', T('歡迎來到水果廣場！到處都藏著水果，總共 40 顆。按「📖 圖鑑」看提示。找到越多水果，就能打開更多傳送門！',
@@ -208,10 +224,11 @@ export const WORLDS = [
       L.portal(-12, -62, 'frosty', 6, 0x9fd8f5);
       L.portal(12, -62, 'candy', 13, 0xff8ac0);
       L.portal(36, -62, 'sky', 20, 0xc6a8ff);
+      L.portal(-60, -62, 'fastfood', 10, 0xffa030);
       L.fruit('sunnyorange', 36, 16.6, -62);
       // golden vault
       const g = L.house(0, -30, 10, 10, 8, C.gold, 0xd9a520, 's', { mat: 'metal' });
-      L.door(g, 0xffe680, { count: 39 }, { gold: true });
+      L.door(g, 0xffe680, { count: 39, cat: 'fruit' }, { gold: true });
       L.col(0, -31, 2.5, 2.5, 1.5, C.white, { mat: 'stone' });
       L.fruit('goldenapple', 0, 3.2, -31);
       // decoration: benches, flower beds, fruit stands
@@ -488,6 +505,96 @@ export const WORLDS = [
       L.fruit('galaxy', 0, 53.8, -85);
       // clouds (deco)
       for (const [x, y, z, s] of [[-40, -14, 30, 16], [50, -10, 30, 20], [30, -18, -60, 22], [-30, -20, -95, 18], [60, 8, -70, 14], [-80, 10, 10, 18]]) L.deco(x, y, z, s, s * 0.35, s * 0.7, C.cloud, { mat: 'cloud' });
+    },
+  },
+  {
+    id: 'fastfood', name: T('速食街', 'Fast Food Street'), color: '#ffa030', need: 10,
+    sky: [0x5aa8ff, 0xffe6c8], fog: [0xffe6c8, 170, 450], sun: 1.0, spawn: [0, 0.4, 55, 0], kill: -40,
+    build(L) {
+      L.plat(0, 0, 0, 172, 172, 0x9aa0a8, { mat: 'stone', t: 4 });
+      for (const [x, z, sx, sz] of [[0, -87, 176, 4], [0, 87, 176, 4], [-87, 0, 4, 176], [87, 0, 4, 176]]) L.col(x, z, sx, sz, 14, C.brick, { mat: 'brick' });
+      L.deco(0, 0.03, 0, 16, 0.06, 172, 0x3a3e46, { mat: 'stone' });
+      for (let z = -80; z <= 80; z += 12) L.deco(0, 0.07, z, 0.6, 0.06, 6, 0xffe03a);
+      L.check(0, 0.2, 55, 6);
+      L.portal(0, 76, 'plaza', 0, 0x6cc04a);
+      L.sign(-6, 0, 60, 's', T('歡迎來到速食街！這裡藏的不是水果，是 10 種速食。', 'Welcome to Fast Food Street! What is hidden here is not fruit: 10 fast foods.'), '🍔');
+      for (const z of [-60, -20, 20]) for (const x of [-10, 10]) { L.col(x, z, 0.6, 0.6, 9, 0x404850, { mat: 'metal' }); L.deco(x, 9.3, z, 1.6, 0.6, 1.6, 0xfff2a0, { mat: 'neon' }); }
+      L.col(6, 20, 4, 8, 3, 0xe03a3a);  L.col(-6, -30, 4, 8, 3, 0x3a8aff);  L.col(6, -70, 4, 8, 3, 0x3ac06a);
+      // food truck: fries on the counter
+      L.col(-20, 40, 8, 14, 7, 0xffffff, { mat: 'metal' });
+      L.deco(-15.9, 5.5, 40, 0.2, 2.5, 6, 0x30363c);
+      L.plat(-15, 3, 40, 2, 4, C.wood, { mat: 'wood' });
+      L.deco(-15.85, 8, 40, 0.3, 1.6, 8, 0xe8322c, { mat: 'sign', face: 'e', label: '🍟 FRY GUY' });
+      L.fruit('fries', -14.8, 4.5, 40);
+      // outdoor table: burger
+      L.col(20, 45, 4, 4, 3, 0xffffff, { mat: 'plastic' });
+      for (const [dx, dz] of [[-3.5, 0], [3.5, 0]]) L.col(20 + dx, 45 + dz, 1.5, 3, 1.5, 0xe03a3a);
+      L.fruit('burger', 20, 4.6, 45);
+      // Burger Barn: soda on the roof (truss); start of the chicken parkour
+      L.house(25, 20, 18, 14, 10, 0xd8502a, 0x8a3a1a, 'w', { mat: 'wood' });
+      L.deco(15.6, 12.5, 20, 0.3, 3, 12, 0xffd23a, { mat: 'sign', face: 'w', label: '🍔 BURGER BARN' });
+      L.truss(35, 20, 0, 11);
+      L.fruit('soda', 25, 12.7, 20);
+      L.check(30, 11, 16, 3);
+      // vanishing blocks + a spinner to the Cluck Shack roof (fried chicken)
+      L.plat(39.5, 14, 22, 2, 2, 0xffb03a, { vanish: true, mat: 'neon' });
+      L.plat(44.5, 17, 25, 2, 2, 0xffb03a, { vanish: true, mat: 'neon' });
+      L.plat(49, 19.5, 22, 1.5, 1.5, 0xff6a3a);
+      L.spin(49, 20.5, 22, 0.3, 3.5, 2.4);
+      L.plat(53, 21, 25, 1.5, 1.5, 0xffb03a, { vanish: true, mat: 'neon' });
+      L.col(60, 25, 10, 10, 22, 0xfff0d0, { mat: 'brick' });
+      L.deco(60, 18, 30.2, 8, 3, 0.3, 0xd83a2a, { mat: 'sign', face: 's', label: '🍗 CLUCK SHACK' });
+      L.fruit('chicken', 60, 23.7, 25);
+      // Donut Dome + bounce pad
+      L.col(40, 40, 12, 12, 12, 0xff8ac0, { mat: 'candy' });
+      L.deco(40, 9, 46.2, 9, 3, 0.3, 0xfff0f6, { mat: 'sign', face: 's', label: '🍩 DONUT DOME' });
+      L.plat(28, 1.5, 52, 5, 5, 0x5ae07a, { surf: 'tramp', mat: 'jelly', t: 1.5 });
+      L.fruit('donut', 40, 13.8, 40);
+      // Hot Dog Hut + spiral steps around the sign pole
+      L.house(-42, 0, 10, 10, 7, 0xffe0a0, 0xd84a2a, 'e');
+      L.col(-25, 0, 2, 2, 24, 0x404850, { mat: 'metal' });
+      for (let i = 0; i < 12; i++) { const a = (i * 45 * Math.PI) / 180; L.plat(-25 + Math.cos(a) * 4.5, 2 * (i + 1), Math.sin(a) * 4.5, 2.5, 2.5, 0xffd23a); }
+      L.plat(-25, 25, 0, 3, 3, 0xd84a2a);
+      L.deco(-25, 29.5, -1.6, 8, 3, 0.3, 0xffd23a, { mat: 'sign', face: 's', label: '🌭 HOT DOG HUT' });
+      L.fruit('hotdog', -25, 26.6, 0);
+      // Pizza Pals + a doorless storeroom with a fake back wall (pizza)
+      L.house(-30, -38, 16, 10, 9, 0xffe0b0, 0xd83a2a, 'e');
+      L.deco(-21.6, 11, -38, 0.3, 3, 10, 0x2a9a3a, { mat: 'sign', face: 'e', label: '🍕 PIZZA PALS' });
+      L.col(-30, -47.5, 8, 1, 8, 0xffe0b0);
+      L.col(-33.5, -50, 1, 4, 8, 0xffe0b0);
+      L.col(-26.5, -50, 1, 4, 8, 0xffe0b0);
+      L.col(-30, -52.5, 8, 1, 8, 0xffe0b0, { fake: true });
+      L.plat(-30, 9, -50, 8, 6, 0xd83a2a);
+      L.fruit('pizza', -30, 1.6, -50);
+      L.sign(-30, 0, -60, 's', T('儲藏室沒有門，可是後面一直飄出披薩的香味……', 'The storeroom has no door, but there is a smell of pizza coming from the back...'), '🍕');
+      // Taco Town garage with a timed drive-thru button (taco)
+      const g = L.house(30, -30, 12, 12, 8, 0xffc040, 0x2ab0a0, 'w');
+      L.door(g, 0x60c0b0, { flag: 'taco' });
+      L.deco(23.6, 10, -30, 0.3, 3, 10, 0x2ab0a0, { mat: 'sign', face: 'w', label: '🌮 TACO TOWN' });
+      L.plat(50, 0.3, -52, 2.5, 2.5, 0xff3030, { t: 0.3, mat: 'neon', button: { flag: 'taco', timed: 4 } });
+      L.sign(46, 0, -50, 's', T('得來速點餐按鈕：按下去，塔可鎮的車庫會打開 4 秒！', 'Drive-thru button: press it and the Taco Town garage opens for 4 seconds!'), '⏱');
+      L.fruit('taco', 31, 1.7, -30);
+      // billboards + moving platform (ice cream)
+      L.col(52.5, -6, 0.6, 0.6, 9, 0x404850, { mat: 'metal' }); L.col(57.5, -6, 0.6, 0.6, 9, 0x404850, { mat: 'metal' });
+      L.plat(55, 10, -6, 6, 3, 0x8a939c, { mat: 'metal' });
+      L.truss(55, -3.5, 0, 10);
+      L.deco(55, 15.5, -7.3, 6, 4, 0.3, 0xffe0f0, { mat: 'sign', face: 's', label: '🍦 SCOOP CITY' });
+      L.plat(55, 11, -11, 3, 3, C.gold, { move: { to: [55, 11, -20], period: 5 } });
+      L.col(52.5, -25, 0.6, 0.6, 12, 0x404850, { mat: 'metal' }); L.col(57.5, -25, 0.6, 0.6, 12, 0x404850, { mat: 'metal' });
+      L.plat(55, 13, -25, 6, 3, 0x8a939c, { mat: 'metal' });
+      L.deco(55, 18.5, -26.3, 6, 4, 0.3, 0x3a7aff, { mat: 'sign', face: 's', label: '🥤 FIZZ!' });
+      L.fruit('icecream', 55, 14.7, -25);
+      // the neon tower (golden burger)
+      L.col(-55, 40, 4, 4, 50, 0x2a2a3a, { mat: 'metal' });
+      for (const [dx, dz, f] of [[0, 2.05, 's'], [2.05, 0, 'e'], [-2.05, 0, 'w'], [0, -2.05, 'n']]) L.deco(-55 + dx, 44, 40 + dz, f === 'e' || f === 'w' ? 0.1 : 3.6, 8, f === 'e' || f === 'w' ? 3.6 : 0.1, 0xff3a8a, { mat: 'sign', face: f, label: '🍔' });
+      for (let i = 0; i < 15; i++) {
+        const a = (i * 50 * Math.PI) / 180 + Math.PI / 2, s2 = i < 3 ? 1.5 : 1, o = { mat: 'neon' };
+        if (i % 4 === 3) o.vanish = true;
+        L.plat(-55 + Math.cos(a) * 5.5, 3.2 * (i + 1), 40 + Math.sin(a) * 5.5, s2, s2, [0xff3a8a, 0xffd23a, 0x3ad0ff, 0x7aff6a][i % 4], o);
+      }
+      L.spin(-55, 17.2, 40, 2.2, 8, 1.5, { phase: 0.5 });
+      L.spin(-55, 33.2, 40, 2.2, 8, -1.8, { phase: 2 });
+      L.fruit('goldenburger', -55, 51.7, 40);
     },
   },
 ];

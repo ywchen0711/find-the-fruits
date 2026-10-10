@@ -8,7 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='9.5' r='6' fill='%23e8322c'/%3E%3Cpath d='M8 4V1.5' stroke='%236a4020' stroke-width='1.4'/%3E%3Cellipse cx='10.5' cy='2.6' rx='2.2' ry='1' fill='%233fae3a'/%3E%3Ccircle cx='6' cy='9' r='.9'/%3E%3Ccircle cx='10' cy='9' r='.9'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="style.css?v=2">
 <script type="importmap">
   { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
 </script>
@@ -30,6 +30,7 @@
   <div id="msg"></div>
   <div id="toasts"></div>
   <div id="stick"><div id="knob"></div></div>
+  <div id="camctl"><button id="camL">⟲</button><button id="camR">⟳</button><button id="zoomIn">＋</button><button id="zoomOut">－</button><button id="camFollow">🎥</button></div>
   <button id="bJump">⤒</button>
 </div>
 
@@ -77,7 +78,7 @@
 </div>
 
 <div id="fade"></div>
-<script type="module" src="js/main.js?v=2"></script>
+<script type="module" src="js/main.js?v=4"></script>
 <script src="/hub.js" data-pos="top-left" defer></script>
 </body>
 </html>

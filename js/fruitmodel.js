@@ -194,6 +194,76 @@ function body(meta) {
       ring.rotation.x = 1.2; ring.userData.spin = 1;
       r = 1; top = 1; break;
     }
+    // ---- fast food (meta.gold turns every part gold)
+    case 'burger': {
+      const G2 = (c2) => (meta.gold ? mat : std(c2));
+      const bun = G2(0xe0a04a);
+      mesh(new THREE.CylinderGeometry(1.0, 0.95, 0.38, 24), bun, 0, -0.62, 0, g);
+      mesh(new THREE.CylinderGeometry(1.08, 1.08, 0.3, 24), G2(0x6a3a1a), 0, -0.3, 0, g);
+      const ch = mesh(new THREE.BoxGeometry(1.75, 0.07, 1.75), G2(0xffd23a), 0, -0.13, 0, g); ch.rotation.y = Math.PI / 4;
+      mesh(new THREE.CylinderGeometry(1.14, 1.1, 0.09, 24), G2(0x5ac83a), 0, -0.06, 0, g);
+      const dome = mesh(new THREE.SphereGeometry(1.02, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), bun, 0, 0, 0, g); dome.scale.y = 0.85;
+      for (let i = 0; i < 9; i++) { const a2 = i * 2.4, rr = 0.25 + (i % 3) * 0.2; if (Math.sin(a2) > 0.4 && rr > 0.5) continue; const sd = mesh(S(0.06, 6, 4), G2(0xfff6e0), Math.cos(a2) * rr, Math.sqrt(Math.max(0, 1 - rr * rr)) * 0.85 + 0.01, Math.sin(a2) * rr * 0.6 - 0.15, g); sd.scale.set(1.6, 0.6, 1); }
+      r = 0.98 / 0.93; cy = 0.32; fs = 0.85; top = 0.9; g.userData.faceZ = 0.98; break;
+    }
+    case 'fries': {
+      const red = std(c);
+      const box = mesh(new THREE.CylinderGeometry(0.85, 0.6, 1.3, 4, 1), red, 0, -0.45, 0, g); box.rotation.y = Math.PI / 4; box.scale.z = 0.6;
+      const fm = std(0xffd23a);
+      for (let i = 0; i < 11; i++) { const st = mesh(new THREE.BoxGeometry(0.15, 1.1, 0.15), fm, -0.5 + (i % 6) * 0.2, 0.35 + (i % 3) * 0.12, (i < 6 ? -0.12 : 0.1), g); st.rotation.z = (i % 4 - 1.5) * 0.12; }
+      mesh(new THREE.BoxGeometry(0.5, 0.25, 0.02), std(0xffd23a), 0, -0.78, 0.39, g);
+      r = 0.45; cy = -0.32; fs = 0.8; top = 1.0; g.userData.faceZ = 0.43; break;
+    }
+    case 'soda': {
+      const cup = mesh(new THREE.CylinderGeometry(0.72, 0.55, 1.7, 24), std(c), 0, -0.2, 0, g);
+      mesh(new THREE.CylinderGeometry(0.735, 0.7, 0.35, 24), std(0xffffff), 0, 0.25, 0, g);
+      mesh(new THREE.CylinderGeometry(0.78, 0.78, 0.12, 24), std(0xffffff), 0, 0.68, 0, g);
+      const straw = mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.1, 8), std(0xff3a3a), 0.2, 1.15, 0, g); straw.rotation.z = -0.3;
+      r = 0.68 / 0.93; cy = -0.35; fs = 0.8; top = 0.75; g.userData.faceZ = 0.66; break;
+    }
+    case 'hotdog': {
+      const bun = mesh(new THREE.CapsuleGeometry(0.42, 1.5, 6, 14), std(0xe0a04a), 0, -0.2, 0, g); bun.rotation.z = Math.PI / 2; bun.scale.set(1, 1, 0.95);
+      const sau = mesh(new THREE.CapsuleGeometry(0.27, 2.0, 6, 12), std(c), 0, 0.2, -0.05, g); sau.rotation.z = Math.PI / 2;
+      const mm = std(0xffd21a);
+      for (let i = 0; i < 6; i++) { const z2 = mesh(new THREE.BoxGeometry(0.32, 0.06, 0.08), mm, -0.8 + i * 0.32, 0.47, -0.05, g); z2.rotation.y = i % 2 ? 0.6 : -0.6; }
+      r = 0.45 / 0.93; cy = -0.25; fs = 0.7; top = 0.5; g.userData.faceZ = 0.42; break;
+    }
+    case 'pizza': {
+      const sh = new THREE.Shape(); sh.moveTo(0, -1.2); sh.lineTo(1.0, 0.75); sh.quadraticCurveTo(0, 1.05, -1.0, 0.75); sh.lineTo(0, -1.2);
+      mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.2, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.05, bevelSegments: 2 }), std(c), 0, 0, -0.1, g);
+      const crust = mesh(new THREE.TorusGeometry(1.25, 0.16, 8, 20, 1.2), std(0xc8782a), 0, -0.35, 0.03, g); crust.rotation.z = Math.PI / 2 - 0.6;
+      const pm = std(0xc8202a);
+      for (const [x, y] of [[-0.45, 0.45], [0.42, 0.5], [0.0, -0.75]]) { const pp = mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.05, 14), pm, x, y, 0.17, g); pp.rotation.x = Math.PI / 2; }
+      r = 0.2 / 0.93; cy = -0.05; fs = 0.75; top = 1.0; g.userData.faceZ = 0.18; break;
+    }
+    case 'taco': {
+      const shell = mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.5, 28, 1, false, -Math.PI / 2, Math.PI), std(c), 0, 0, 0, g); shell.rotation.x = Math.PI / 2;   // the half facing -y after the turn: an open-topped U
+      shell.position.y = 0.25;
+      const fill = [0x5ac83a, 0xe8322c, 0x8a4a2a, 0xffd23a];
+      for (let i = 0; i < 9; i++) mesh(new THREE.BoxGeometry(0.28, 0.22, 0.32), std(fill[i % 4]), -0.85 + i * 0.21, 0.32 + Math.sin(i) * 0.05, 0, g);
+      r = 0.27 / 0.93; cy = -0.3; fs = 0.75; top = 0.5; g.userData.faceZ = 0.27; break;
+    }
+    case 'donut': {
+      mesh(new THREE.TorusGeometry(0.72, 0.4, 16, 32), std(0xe0a04a), 0, 0, 0, g);
+      const ic = mesh(new THREE.TorusGeometry(0.72, 0.36, 12, 32), std(c), 0, 0, 0.1, g); ic.scale.z = 0.75;
+      const sp = [0xffffff, 0x3a9aff, 0xffd23a, 0x5ae07a];
+      for (let i = 0; i < 26; i++) { const a2 = (i / 26) * Math.PI * 2; if (Math.sin(a2) < -0.6) continue; const rr = 0.72 + Math.sin(i * 3.1) * 0.22; const s3 = mesh(new THREE.BoxGeometry(0.16, 0.04, 0.04), std(sp[i % 4]), Math.cos(a2) * rr, Math.sin(a2) * rr, 0.42, g); s3.rotation.z = i; }
+      r = 0.5 / 0.93; cy = -0.72; fs = 0.7; top = 1.1; g.userData.faceZ = 0.45; break;
+    }
+    case 'icecream': {
+      const cone = mesh(new THREE.ConeGeometry(0.58, 1.4, 16), std(0xd8a050, { map: pineTex(0xd8a050) }), 0, -0.85, 0, g); cone.rotation.x = Math.PI;
+      mesh(S(0.66), std(c), 0, 0.05, 0, g);
+      mesh(S(0.55), std(0xfff6e0), 0, 0.72, 0, g);
+      mesh(S(0.16, 10, 8), std(0xd8102a), 0, 1.3, 0, g);
+      r = 0.66; cy = 0.0; fs = 0.72; top = 1.4; break;
+    }
+    case 'drumstick': {
+      const meat = mesh(S(0.85), std(c, { roughness: 0.9 }), -0.15, 0.1, 0, g); meat.scale.set(1.05, 0.95, 0.9);
+      const bone = mesh(new THREE.CylinderGeometry(0.13, 0.13, 1.0, 10), std(0xfff6e8), 0.75, -0.55, 0, g); bone.rotation.z = 0.8;
+      for (const dz of [-0.12, 0.12]) mesh(S(0.17, 10, 8), std(0xfff6e8), 1.15, -0.93, dz, g);
+      for (let i = 0; i < 14; i++) { const a2 = i * 2.4, y = Math.cos(i * 1.7) * 0.7; if (Math.cos(a2) > 0.5) continue; mesh(S(0.12, 6, 4), std(0xb8661a), -0.15 + Math.sin(a2) * 0.75, 0.1 + y, Math.cos(a2) * 0.65, g); }
+      r = 0.82; cy = 0.05; fs = 0.8; top = 0.95; g.userData.faceX = -0.15; break;
+    }
     default: mesh(S(1), mat, 0, 0, 0, g);
   }
   const fz = g.userData.faceZ;

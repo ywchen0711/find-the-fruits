@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { WORLDS, WORLD, FRUITS, FRUIT, TIERS, buildWorld } from './data.js';
-import { World, newPlayer, stepPlayer } from './physics.js';
-import { makeFruit, animateFruit } from './fruitmodel.js';
-import { makeAvatar, animateAvatar, AVATARS } from './avatar.js';
-import { sfx, music } from './audio.js';
+import { WORLDS, WORLD, FRUITS, FRUIT, TIERS, CATS, buildWorld } from './data.js?v=2';
+import { World, newPlayer, stepPlayer } from './physics.js?v=2';
+import { makeFruit, animateFruit } from './fruitmodel.js?v=2';
+import { makeAvatar, animateAvatar, AVATARS } from './avatar.js?v=2';
+import { sfx, music } from './audio.js?v=2';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -21,46 +21,50 @@ const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save
 // the lobby opens games with ?lang=zh|en: that choice wins and is remembered
 const qLang = (typeof location !== 'undefined' && (location.search.match(/[?&]lang=(zh|en)(?![a-z])/) || [])[1]);
 if (qLang) { save.lang = qLang; persist(); }
-const foundCount = () => FRUITS.filter((f) => save.found[f.id]).length;
+const foundCount = (cat) => FRUITS.filter((f) => save.found[f.id] && (!cat || f.cat === cat)).length;
+const catTotal = (cat) => FRUITS.filter((f) => f.cat === cat).length;
+if (save.follow === undefined) save.follow = true;
 
 const STR = {
   zh: {
-    title: '尋找水果！', sub: '五個世界、40 顆藏起來的水果。你能全部找到嗎？', play: '開始探險', choose: '選擇角色', progress: '收集進度',
+    title: '尋找水果！', sub: '六個世界，藏著 40 顆水果和 10 種速食。你能全部找到嗎？', play: '開始探險', choose: '選擇角色', progress: '收集進度',
     book: '水果圖鑑', hint: '💡 提示', found: '已找到', missing: '還沒找到', badge: '獲得徽章！', badgeOf: (n) => `${n} 發現者`,
     youFound: (n) => `找到了 ${n}！`, already: (n) => `${n} 已經找到過了`, unlocked: (w) => `🔓 ${w} 的傳送門打開了！`,
-    need: (n, m) => `🔒 需要 ${n} 顆水果才能進去（你有 ${m} 顆）`, locked: '🔒 門鎖住了', gotKey: '🔑 拿到寶藏鑰匙了！', usedKey: '🔑 用鑰匙打開了門！',
+    need: (n, m, c) => `🔒 需要 ${n} 個${c === 'fruit' ? '水果' : '寶物'}才能進去（你有 ${m} 個）`, locked: '🔒 門鎖住了', gotKey: '🔑 拿到寶藏鑰匙了！', usedKey: '🔑 用鑰匙打開了門！',
     needKey: '🔒 這扇門需要鑰匙', check: '✅ 存檔點', codeOk: '🔓 密碼正確！', codeBad: '❌ 密碼錯誤', seqOk: '🎨 順序正確，門打開了！', seqBad: '❌ 順序錯了，從頭再來！',
-    seqGood: (n, m) => `✔ ${n}/${m}`, timer: (s) => `⏱ 門會在 ${s} 秒後關上！`, worldDone: (w) => `🏆 ${w} 的水果全部找到了！`, allDone: '🏆🏆 40 顆水果全部找到了！你是水果大師！',
-    pcControls: 'WASD / 方向鍵 移動 · 空白鍵 跳 · 拖曳滑鼠 轉視角 · 滾輪 縮放 · B 圖鑑 · R 重生',
-    touchControls: '左手搖桿移動 · 右邊拖曳轉視角 · ⤒ 跳',
+    seqGood: (n, m) => `✔ ${n}/${m}`, timer: (s) => `⏱ 門會在 ${s} 秒後關上！`, worldDone: (w) => `🏆 ${w} 全部找到了！`, allDone: '🏆🏆 40 顆水果和 10 種速食全部找到了！你是尋寶大師！',
+    pcControls: 'WASD / 方向鍵 移動 · 空白鍵 跳 · 拖曳滑鼠或 Q / E 轉視角 · 滾輪縮放 · F 跟隨視角 · B 圖鑑 · R 重生',
+    touchControls: '左手搖桿移動 · 右邊畫面拖曳或按 ⟲ ⟳ 轉視角 · ＋－ 縮放 · ⤒ 跳',
     keypad: '輸入 4 位數密碼', enter: '確定', clear: '清除', close: '關閉', all: '全部', go: '傳送過去', lockedW: (n) => `🔒 需要 ${n} 顆`,
     help: '怎麼玩', tiers: '難度', helpBody: [
-      '在每個世界探索，找出藏起來的水果。碰到水果就收集起來，還會得到一個徽章！',
+      '在每個世界探索，找出藏起來的水果。碰到水果就收集起來，還會得到一個徽章！速食街藏的不是水果，是 10 種速食。',
+      '轉視角：拖曳畫面、按 Q / E，或按右下角的 ⟲ ⟳（按住會一直轉）；＋－ 縮放。🎥 跟隨視角打開時，走路時鏡頭會自動轉到角色後面。',
       '有的水果就在眼前（簡單），有的要爬梯子、跑酷（普通、困難），有的要解謎：找鑰匙、輸入密碼、按對按鈕順序、跑過限時的門，或是發現能穿過去的假牆和看不見的路。',
       '瘋狂和不可能的水果要很困難的跑酷：會消失的方塊、移動平台、旋轉棒、滑溜的冰……掉下去就回到存檔點（白色的發光地板）。',
       '找到越多水果，水果廣場就會開啟越多傳送門。打開 📖 圖鑑可以看每顆水果的提示。',
     ],
     reset: '重生', home: '回水果廣場', soundL: '音效', musicL: '音樂', wipe: '清除存檔', wipeQ: '確定要清除所有進度嗎？', oof: '噢！',
-    worldCount: (n, m) => `這個世界 ${n}/${m}`,
+    worldCount: (n, m) => `這個世界 ${n}/${m}`, follow: (on) => `🎥 跟隨視角：${on ? '開' : '關'}`,
   },
   en: {
-    title: 'Find the Fruits!', sub: 'Five worlds, 40 hidden fruits. Can you find them all?', play: 'Start exploring', choose: 'Choose your avatar', progress: 'Progress',
+    title: 'Find the Fruits!', sub: 'Six worlds hiding 40 fruits and 10 fast foods. Can you find them all?', play: 'Start exploring', choose: 'Choose your avatar', progress: 'Progress',
     book: 'Fruit Book', hint: '💡 Hint', found: 'Found', missing: 'Not found yet', badge: 'Badge awarded!', badgeOf: (n) => `${n} Finder`,
     youFound: (n) => `You found the ${n}!`, already: (n) => `You already found the ${n}`, unlocked: (w) => `🔓 The ${w} portal is open!`,
-    need: (n, m) => `🔒 You need ${n} fruits to enter (you have ${m})`, locked: '🔒 The door is locked', gotKey: '🔑 You got the treasure key!', usedKey: '🔑 The key opened the door!',
+    need: (n, m, c) => `🔒 You need ${n} ${c === 'fruit' ? 'fruits' : 'finds'} to enter (you have ${m})`, locked: '🔒 The door is locked', gotKey: '🔑 You got the treasure key!', usedKey: '🔑 The key opened the door!',
     needKey: '🔒 This door needs a key', check: '✅ Checkpoint', codeOk: '🔓 Correct code!', codeBad: '❌ Wrong code', seqOk: '🎨 Right order, the door opens!', seqBad: '❌ Wrong order, start again!',
-    seqGood: (n, m) => `✔ ${n}/${m}`, timer: (s) => `⏱ The door closes in ${s} seconds!`, worldDone: (w) => `🏆 Every fruit in ${w} found!`, allDone: '🏆🏆 All 40 fruits found! You are a Fruit Master!',
-    pcControls: 'WASD / arrows to move · Space to jump · drag the mouse to look · wheel to zoom · B book · R reset',
-    touchControls: 'Left stick to move · drag on the right to look · ⤒ to jump',
+    seqGood: (n, m) => `✔ ${n}/${m}`, timer: (s) => `⏱ The door closes in ${s} seconds!`, worldDone: (w) => `🏆 Everything in ${w} found!`, allDone: '🏆🏆 All 40 fruits and 10 fast foods found! You are a Treasure Master!',
+    pcControls: 'WASD / arrows to move · Space to jump · drag the mouse or Q / E to look · wheel to zoom · F follow camera · B book · R reset',
+    touchControls: 'Left stick to move · drag on the right or press ⟲ ⟳ to look · ＋－ to zoom · ⤒ to jump',
     keypad: 'Enter the 4-digit code', enter: 'Enter', clear: 'Clear', close: 'Close', all: 'All', go: 'Teleport', lockedW: (n) => `🔒 needs ${n}`,
     help: 'How to play', tiers: 'Difficulty', helpBody: [
-      'Explore each world and find the hidden fruits. Touch a fruit to collect it and earn its badge!',
+      'Explore each world and find the hidden fruits. Touch a fruit to collect it and earn its badge! Fast Food Street hides 10 fast foods instead.',
+      'Turning the camera: drag the screen, press Q / E, or use ⟲ ⟳ at the bottom right (hold to keep turning); ＋ － zooms. With 🎥 follow camera on, the camera swings behind you as you walk.',
       'Some fruits sit in plain sight (Easy). Others need climbing and parkour (Medium, Hard), or a puzzle: find a key, crack a code, press buttons in the right order, beat a timed door, or discover fake walls and invisible paths.',
       'Insane and Impossible fruits need tough parkour: vanishing blocks, moving platforms, spinning bars, slippery ice... If you fall, you go back to your last checkpoint (the white glowing pads).',
       'The more fruits you find, the more portals open in Fruit Plaza. Open the 📖 Book for a hint for every fruit.',
     ],
     reset: 'Reset', home: 'Back to Fruit Plaza', soundL: 'Sound', musicL: 'Music', wipe: 'Erase save', wipeQ: 'Erase all your progress?', oof: 'Oof!',
-    worldCount: (n, m) => `This world ${n}/${m}`,
+    worldCount: (n, m) => `This world ${n}/${m}`, follow: (on) => `🎥 Follow camera: ${on ? 'on' : 'off'}`,
   },
 };
 const tr = () => STR[save.lang];
@@ -328,7 +332,7 @@ function loadWorld(id, at) {
       G.labels.push({ s, kind: 'portal', wd });
     }
     if (p.door && p.door.count) {
-      const s = textSprite([`🔒 ${p.door.count} 🍎`], { scale: 1.1 });
+      const s = textSprite([`🔒 ${p.door.count} ${p.door.cat === 'fruit' ? '🍎' : '⭐'}`], { scale: 1.1 });
       s.position.set(p.x, p.y + (p.gate ? 0 : 1), p.z + p.sz / 2 + 0.5); group.add(s);
       G.labels.push({ s, kind: 'gate', p });
     }
@@ -392,7 +396,7 @@ function updateLabels() {
     if (l.kind === 'portal') {
       const need = l.wd.need, open = n >= need;
       const lines = [nm(l.wd.name)];
-      if (l.wd.id !== 'plaza') lines.push(open ? `${worldFound(l.wd.id)}/${worldTotal(l.wd.id)} 🍎` : `🔒 ${need} 🍎`);
+      if (l.wd.id !== 'plaza') lines.push(open ? `${worldFound(l.wd.id)}/${worldTotal(l.wd.id)} ${l.wd.id === 'fastfood' ? '🍔' : '🍎'}` : `🔒 ${need} ⭐`);
       const s2 = textSprite(lines, { scale: 1.3, bg: l.wd.color + 'dd' });
       l.s.material.map.dispose(); l.s.material.map = s2.material.map; l.s.scale.copy(s2.scale);
     }
@@ -444,13 +448,14 @@ function confetti(x, y, z, color) {
 // ------------------------------------------------------------------ input
 const keys = new Set();
 const touch = { mx: 0, mz: 0, jump: false, stickId: null, ox: 0, oy: 0, lookId: null, lx: 0, ly: 0 };
-const cam = { yaw: 0, pitch: 0.32, dist: 16, tx: 0, ty: 0, tz: 0 };
+const cam = { yaw: 0, pitch: 0.32, dist: 16, tx: 0, ty: 0, tz: 0, spin: 0, zoom: 0 };
 window.addEventListener('keydown', (e) => {
   if (G.modal === 'keypad') { keypadKey(e.key); e.preventDefault(); return; }
   if (e.key === 'Escape') { closeModals(); return; }
   if (G.modal) return;
   keys.add(e.code);
   if (e.code === 'KeyB') openBook();
+  if (e.code === 'KeyF') toggleFollow();
   if (e.code === 'KeyR' && G.started && !G.deadT) { G.pl.dead = true; die('kill'); }
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
 });
@@ -556,7 +561,7 @@ function onEnter(p) {
     if (p.door.key && W.keys.has(p.door.key)) { W.opened.add(p.id); W.keys.delete(p.door.key); sfx.play('door'); msg(t.usedKey, 2000); updateHUD(); }
     else if (G.t - G.lockedMsgT > 2.5) {
       G.lockedMsgT = G.t;
-      msg(p.door.count ? t.need(p.door.count, foundCount()) : p.door.key ? t.needKey : t.locked, 2200);
+      msg(p.door.count ? t.need(p.door.count, foundCount(p.door.cat), p.door.cat) : p.door.key ? t.needKey : t.locked, 2200);
       sfx.play('bad');
     }
   }
@@ -735,8 +740,19 @@ function updateCamera(dt) {
   const k = Math.min(1, dt * 12);
   cam.tx += (pl.x - cam.tx) * k; cam.ty += (pl.y + 4.3 - cam.ty) * Math.min(1, dt * 9); cam.tz += (pl.z - cam.tz) * k;
   if (Math.abs(cam.tx - pl.x) > 20 || Math.abs(cam.tz - pl.z) > 20) { cam.tx = pl.x; cam.ty = pl.y + 4.3; cam.tz = pl.z; }
-  if (keys.has('KeyQ')) cam.yaw += dt * 2.2;
-  if (keys.has('KeyE')) cam.yaw -= dt * 2.2;
+  if (keys.has('KeyQ') || keys.has('Comma')) cam.yaw += dt * 2.2;
+  if (keys.has('KeyE') || keys.has('Period')) cam.yaw -= dt * 2.2;
+  cam.yaw += cam.spin * dt * 2.4;
+  if (cam.zoom) cam.dist = Math.min(40, Math.max(5, cam.dist * (1 + cam.zoom * dt * 1.5)));
+  // follow camera: while walking, swing gently around behind the avatar (like Roblox's Follow mode)
+  const li = G.lastInp;
+  if (save.follow && !drag && touch.lookId === null && !cam.spin && li && G.deadT <= 0 && !G.pl.climbing) {
+    const m = Math.hypot(li.mx, li.mz);
+    if (m > 0.3) {
+      const d0 = Math.atan2(Math.sin(G.pl.yaw + Math.PI - cam.yaw), Math.cos(G.pl.yaw + Math.PI - cam.yaw));
+      if (Math.abs(d0) < 2.0) cam.yaw += d0 * Math.min(1, dt * 0.9 * m);
+    }
+  }
   const dir = _v.set(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
   // pull the camera in front of walls
   let d = cam.dist;
@@ -801,7 +817,7 @@ function updateHUD() {
   const def = WORLD[G.wid];
   $('wname').textContent = nm(def.name);
   $('wname').style.color = def.color;
-  $('count').innerHTML = `🍎 <b>${foundCount()}</b>/${FRUITS.length} <small>· ${tr().worldCount(worldFound(G.wid), worldTotal(G.wid))}</small>`;
+  $('count').innerHTML = CATS.map((c) => `${c.icon} <b>${foundCount(c.id)}</b>/${catTotal(c.id)}`).join(' &nbsp;') + `<br><small>${tr().worldCount(worldFound(G.wid), worldTotal(G.wid))}</small>`;
   $('keyicon').hidden = !(G.W && G.W.keys.size);
 }
 
@@ -852,7 +868,7 @@ function openBook() {
 function renderBook() {
   const t = tr(), n = foundCount();
   $('bookTitle').textContent = `📖 ${t.book}`;
-  $('bookProg').innerHTML = `${t.progress}: <b>${n}</b> / ${FRUITS.length}` + `<span class="bar"><i style="width:${(n / FRUITS.length) * 100}%"></i></span>`;
+  $('bookProg').innerHTML = `${t.progress}: <b>${n}</b> / ${FRUITS.length}` + `<span class="bar"><i style="width:${(n / FRUITS.length) * 100}%"></i></span>` + CATS.map((c) => `<span>${c.icon} ${foundCount(c.id)}/${catTotal(c.id)}</span>`).join(' ');
   $('bookTabs').innerHTML = WORLDS.map((w) => `<button data-w="${w.id}" class="${w.id === bookTab ? 'sel' : ''}" style="--c:${w.color}">${nm(w.name)} <small>${worldFound(w.id)}/${worldTotal(w.id)}</small></button>`).join('');
   const w = WORLD[bookTab];
   const open = n >= w.need;
@@ -930,7 +946,7 @@ function renderStart() {
   $('sProg').innerHTML = `${t.progress}: <b>${n}</b> / ${FRUITS.length}<span class="bar"><i style="width:${(n / FRUITS.length) * 100}%"></i></span>`;
   $('sAvatars').innerHTML = AVATARS.map((a) => `<button data-a="${a.id}" class="${a.id === save.avatar ? 'sel' : ''}"><img src="${avatarIcon(a.id)}" alt=""><span>${a.name}</span></button>`).join('');
   $('sAvatars').querySelectorAll('button').forEach((b) => b.onclick = () => { save.avatar = b.dataset.a; persist(); sfx.unlock(); sfx.play('click'); renderStart(); });
-  $('sFruits').innerHTML = ['apple', 'banana', 'piratepineapple', 'rainbowdragon', 'kingmango', 'galaxy'].map((id) => `<img src="${fruitIcon(id)}" alt="">`).join('');
+  $('sFruits').innerHTML = ['apple', 'banana', 'piratepineapple', 'burger', 'rainbowdragon', 'donut', 'kingmango', 'galaxy'].map((id) => `<img src="${fruitIcon(id)}" alt="">`).join('');
   $('bLang').textContent = save.lang === 'zh' ? 'EN' : '中';
   for (const [id, k] of [['bBook', 'book'], ['bHome', 'home'], ['bReset', 'reset'], ['bHelp', 'help']]) $(id).title = t[k];
 }
@@ -947,6 +963,16 @@ $('bHome').onclick = () => { sfx.play('click'); if (G.started && G.wid !== 'plaz
 $('bReset').onclick = () => { if (G.started && !G.deadT) { G.pl.dead = true; die('kill'); } };
 $('bHelp').onclick = () => { sfx.play('click'); renderHelp(); G.modal = 'help'; $('help').hidden = false; };
 $('bSound').onclick = () => { save.sound = !save.sound; persist(); applySound(); };
+// on-screen camera buttons: hold to keep turning / zooming
+for (const [id, k, v] of [['camL', 'spin', 1], ['camR', 'spin', -1], ['zoomIn', 'zoom', -1], ['zoomOut', 'zoom', 1]]) {
+  const b = $(id);
+  b.addEventListener('pointerdown', (e) => { e.preventDefault(); sfx.unlock(); cam[k] = v; b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch (er) { /* ignore */ } });
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(ev, () => { cam[k] = 0; b.classList.remove('on'); });
+}
+function toggleFollow() { save.follow = !save.follow; persist(); paintFollow(); msg(tr().follow(save.follow), 1400); }
+function paintFollow() { $('camFollow').classList.toggle('off', !save.follow); $('camFollow').title = tr().follow(save.follow); }
+$('camFollow').onclick = () => { sfx.play('click'); toggleFollow(); };
+paintFollow();
 $('bMusic').onclick = () => { save.music = !save.music; persist(); applySound(); };
 $('bLang').onclick = () => {
   save.lang = save.lang === 'zh' ? 'en' : 'zh'; persist();

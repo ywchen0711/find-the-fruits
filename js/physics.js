@@ -1,6 +1,6 @@
 // Player physics + world runtime state (moving parts, vanishing blocks, doors, flags). No three.js here,
 // so tools/phys-test.mjs can drive it in Node.
-import { PHYS } from './data.js';
+import { PHYS } from './data.js?v=2';
 
 const { WALK, JUMPV, G, TRAMPV, CLIMB, HW, H, STEP } = PHYS;
 const EPS = 1e-6;
@@ -59,7 +59,7 @@ export class World {
   isOpen(p) {
     const d = p.door;
     if (!d) return false;
-    if (d.count != null) return this.foundCount() >= d.count;
+    if (d.count != null) return this.foundCount(d.cat) >= d.count;
     if (d.flag) return !!this.flags[d.flag];
     if (d.key) return this.opened.has(p.id);
     return false;
@@ -159,6 +159,7 @@ function sub(pl, W, inp, h, ev) {
 
 // move along one axis and resolve; for 'y' returns the part landed on
 function moveAxis(pl, W, ax, d, wasGround) {
+  if (ax !== 'y' && d === 0) return null;            // no sideways move: overlaps (a lift rising into you) are settled by the y pass
   pl[ax] += d;
   let landed = null;
   for (const p of W.solids) {
@@ -168,7 +169,7 @@ function moveAxis(pl, W, ax, d, wasGround) {
       else { pl.y = p.y0 - H; if (pl.vy > 0) pl.vy = 0; }
     } else {
       const rise = p.y1 - pl.y;
-      if (wasGround && rise > 0 && rise <= STEP && !blockedAt(pl, W, p.y1 + 0.001)) { pl.y = p.y1 + 0.001; continue; }
+      if ((wasGround || p.move) && rise > 0 && rise <= STEP && !blockedAt(pl, W, p.y1 + 0.001)) { pl.y = p.y1 + 0.001; continue; }
       if (ax === 'x') { pl.x = d > 0 ? p.x0 - HW : p.x1 + HW; pl.vx = 0; }
       else { pl.z = d > 0 ? p.z0 - HW : p.z1 + HW; pl.vz = 0; }
     }
