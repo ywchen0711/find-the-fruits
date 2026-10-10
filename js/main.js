@@ -18,6 +18,9 @@ function loadSave() {
 const save = loadSave();
 if (params.get('found') === 'all') FRUITS.forEach((f) => { if (f.id !== 'goldenapple') save.found[f.id] = Date.now(); });
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* private mode */ } };
+// the lobby opens games with ?lang=zh|en: that choice wins and is remembered
+const qLang = (typeof location !== 'undefined' && (location.search.match(/[?&]lang=(zh|en)(?![a-z])/) || [])[1]);
+if (qLang) { save.lang = qLang; persist(); }
 const foundCount = () => FRUITS.filter((f) => save.found[f.id]).length;
 
 const STR = {
