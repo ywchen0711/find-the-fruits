@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Find the Fruits! 尋找水果</title>
+<meta name="description" content="A 3D treasure hunt: explore five worlds and find 40 hidden fruits through parkour, puzzles and secret passages. Every fruit earns a badge, graded Easy to Impossible.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='9.5' r='6' fill='%23e8322c'/%3E%3Cpath d='M8 4V1.5' stroke='%236a4020' stroke-width='1.4'/%3E%3Cellipse cx='10.5' cy='2.6' rx='2.2' ry='1' fill='%233fae3a'/%3E%3Ccircle cx='6' cy='9' r='.9'/%3E%3Ccircle cx='10' cy='9' r='.9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1">
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="hud">
+  <div id="info"><div id="wname"></div><div id="count"></div></div>
+  <div id="tools">
+    <button id="bBook">📖</button><button id="bHome">🏠</button><button id="bReset">↺</button>
+    <button id="bSound">🔊</button><button id="bMusic">🎵</button><button id="bLang">EN</button><button id="bHelp">?</button>
+  </div>
+  <div id="timer" hidden></div>
+  <div id="keyicon" hidden>🔑</div>
+  <div id="signbox" hidden></div>
+  <div id="banner"></div>
+  <div id="wcard"></div>
+  <div id="msg"></div>
+  <div id="toasts"></div>
+  <div id="stick"><div id="knob"></div></div>
+  <button id="bJump">⤒</button>
+</div>
+
+<div id="start" class="modal">
+  <div class="panel startp">
+    <div id="sFruits" class="sfruits"></div>
+    <h1 id="sTitle"></h1>
+    <p id="sSub"></p>
+    <div id="sProg" class="prog"></div>
+    <h3 id="sChoose"></h3>
+    <div id="sAvatars" class="avatars"></div>
+    <button id="sPlay" class="big"></button>
+    <p id="sCtl" class="ctl"></p>
+  </div>
+</div>
+
+<div id="book" class="modal" hidden>
+  <div class="panel bookp">
+    <button class="closeX">✕</button>
+    <h2 id="bookTitle"></h2>
+    <div id="bookProg" class="prog"></div>
+    <div id="bookTabs" class="tabs"></div>
+    <div id="bookGo" class="go"></div>
+    <div id="bookGrid" class="grid"></div>
+    <div id="tierLegend" class="legend"></div>
+  </div>
+</div>
+
+<div id="keypad" class="modal" hidden>
+  <div class="panel kp">
+    <button class="closeX">✕</button>
+    <h3 id="kpTitle"></h3>
+    <div id="kpDisp">_ _ _ _</div>
+    <div id="kpKeys"></div>
+    <div class="kpb"><button id="kpClear"></button><button id="kpEnter" class="big"></button></div>
+  </div>
+</div>
+
+<div id="help" class="modal" hidden>
+  <div class="panel helpp">
+    <button class="closeX">✕</button>
+    <h2 id="helpTitle"></h2>
+    <div id="helpBody"></div>
+  </div>
+</div>
+
+<div id="fade"></div>
+<script type="module" src="js/main.js?v=1"></script>
+<script src="/hub.js" data-pos="top-left" defer></script>
+</body>
+</html>
