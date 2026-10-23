@@ -4,6 +4,7 @@ import { World, newPlayer, stepPlayer } from './physics.js?v=2';
 import { makeFruit, animateFruit } from './fruitmodel.js?v=2';
 import { makeAvatar, animateAvatar, AVATARS } from './avatar.js?v=2';
 import { sfx, music } from './audio.js?v=2';
+import { net, join as netJoin, leave as netLeave, sendState, emit, prune, setMe, newCode, cleanCode, cleanName, myId } from './net.js?v=1';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -12,7 +13,7 @@ const isTouch = matchMedia('(pointer: coarse)').matches || params.has('touch');
 // ------------------------------------------------------------------ save + text
 const SAVE_KEY = 'ftf_save_v1';
 function loadSave() {
-  const d = { found: {}, avatar: 'josh', lang: /^zh/i.test(navigator.language || '') ? 'zh' : 'en', sound: true, music: true, seen: {} };
+  const d = { found: {}, avatar: 'josh', lang: /^zh/i.test(navigator.language || '') ? 'zh' : 'en', sound: true, music: true, seen: {}, name: '', room: 'public' };
   try { return { ...d, ...JSON.parse(localStorage.getItem(SAVE_KEY) || '{}') }; } catch (e) { return d; }
 }
 const save = loadSave();
@@ -24,6 +25,8 @@ if (qLang) { save.lang = qLang; persist(); }
 const foundCount = (cat) => FRUITS.filter((f) => save.found[f.id] && (!cat || f.cat === cat)).length;
 const catTotal = (cat) => FRUITS.filter((f) => f.cat === cat).length;
 if (save.follow === undefined) save.follow = true;
+// a shared link ?room=ABCD puts you straight into that private room
+if (cleanCode(params.get('room')).length === 4) { save.room = save.lastCode = cleanCode(params.get('room')); persist(); }
 
 const STR = {
   zh: {
@@ -45,6 +48,16 @@ const STR = {
     ],
     reset: '重生', home: '回水果廣場', soundL: '音效', musicL: '音樂', wipe: '清除存檔', wipeQ: '確定要清除所有進度嗎？', oof: '噢！',
     worldCount: (n, m) => `這個世界 ${n}/${m}`, follow: (on) => `🎥 跟隨視角：${on ? '開' : '關'}`,
+    mp: '一起玩', mpName: '你的暱稱', mpNameTip: '別人會看到這個名字，不要用真實的全名喔', mpWith: '和誰一起玩',
+    mpPublic: '🌍 公開房間', mpPrivate: '🔒 私人房間', mpSolo: '🙂 自己玩', mpNew: '建立新房間', mpJoin: '加入', mpCodePh: '代碼',
+    mpPublicTip: '進到同一個世界的所有玩家都會看到彼此', mpPrivateTip: (c) => `把代碼 ${c} 告訴朋友，輸入同一個代碼就能一起玩`, mpSoloTip: '不連線，只有你自己',
+    mpRoom: (r) => r === 'public' ? '🌍 公開房間' : r === 'solo' ? '🙂 自己玩（離線）' : `🔒 私人房間 ${r}`,
+    mpSt: { off: '離線', connecting: '連線中…', on: '🟢 已連線', error: '🔴 連線失敗' },
+    mpHere: '在這個世界', mpAlone: '這個世界還沒有其他人', mpCopy: '複製邀請連結', mpCopied: '✔ 已複製',
+    mpCame: (n) => `👋 ${n} 來了`, mpLeft: (n) => `${n} 離開了`, mpFound: (n, f) => `🎉 ${n} 找到了 ${f}！`,
+    mpHi5Ask: (n) => `✋ ${n} 想跟你擊掌！快按 ✋`, mpHi5Wait: (n) => `✋ 等 ${n} 也按擊掌…`, mpHi5: (n) => `✋ 和 ${n} 擊掌成功！`, mpHi5None: '附近沒有人可以擊掌（要靠近一點）',
+    mpEmotes: '動作', mpSay: '說話', mpSwitch: '換房間', mpKeys: '數字鍵 1–5 也能做動作',
+    says: ['你好！', '這邊！', '跟我來！', '我找到了！', '幫幫我！', '好厲害！', '謝謝！', '掰掰！'],
   },
   en: {
     title: 'Find the Fruits!', sub: 'Six worlds hiding 40 fruits and 10 fast foods. Can you find them all?', play: 'Start exploring', choose: 'Choose your avatar', progress: 'Progress',
@@ -65,6 +78,16 @@ const STR = {
     ],
     reset: 'Reset', home: 'Back to Fruit Plaza', soundL: 'Sound', musicL: 'Music', wipe: 'Erase save', wipeQ: 'Erase all your progress?', oof: 'Oof!',
     worldCount: (n, m) => `This world ${n}/${m}`, follow: (on) => `🎥 Follow camera: ${on ? 'on' : 'off'}`,
+    mp: 'Play together', mpName: 'Your nickname', mpNameTip: 'Others will see this name. Don’t use your real full name', mpWith: 'Play with',
+    mpPublic: '🌍 Public', mpPrivate: '🔒 Private room', mpSolo: '🙂 Solo', mpNew: 'New room', mpJoin: 'Join', mpCodePh: 'Code',
+    mpPublicTip: 'Everyone in the same world sees each other', mpPrivateTip: (c) => `Tell your friends the code ${c}; everyone with the same code plays together`, mpSoloTip: 'Offline, just you',
+    mpRoom: (r) => r === 'public' ? '🌍 Public room' : r === 'solo' ? '🙂 Solo (offline)' : `🔒 Private room ${r}`,
+    mpSt: { off: 'Offline', connecting: 'Connecting…', on: '🟢 Connected', error: '🔴 Connection failed' },
+    mpHere: 'In this world', mpAlone: 'Nobody else is in this world yet', mpCopy: 'Copy invite link', mpCopied: '✔ Copied',
+    mpCame: (n) => `👋 ${n} joined`, mpLeft: (n) => `${n} left`, mpFound: (n, f) => `🎉 ${n} found the ${f}!`,
+    mpHi5Ask: (n) => `✋ ${n} wants a high five! Press ✋`, mpHi5Wait: (n) => `✋ Waiting for ${n} to high five…`, mpHi5: (n) => `✋ High five with ${n}!`, mpHi5None: 'Nobody close enough for a high five',
+    mpEmotes: 'Moves', mpSay: 'Say', mpSwitch: 'Change room', mpKeys: 'Number keys 1–5 do moves too',
+    says: ['Hi!', 'Over here!', 'Follow me!', 'I found it!', 'Help me!', 'Awesome!', 'Thanks!', 'Bye!'],
   },
 };
 const tr = () => STR[save.lang];
@@ -262,6 +285,7 @@ const G = {
   wid: null, W: null, group: null, meshes: new Map(), spins: [], fruitObjs: [], keyObjs: [], labels: [], sparkles: [], fx: [],
   pl: null, cp: null, av: null, deadT: 0, prevTouch: new Set(), msgT: {}, modal: null, started: false, snow: null, t: 0,
   lockedMsgT: 0, sign: null,
+  remote: new Map(), emote: '', emoteT: 0, hi5To: null, hi5From: null,
 };
 
 function disposeGroup(g) {
@@ -288,6 +312,8 @@ function loadWorld(id, at) {
   const def = W.def;
   G.wid = id; G.W = W; G.meshes.clear(); G.spins = []; G.fruitObjs = []; G.keyObjs = []; G.labels = []; G.sparkles = []; G.prevTouch = new Set();
   const group = new THREE.Group(); G.group = group; scene.add(group);
+  G.remote.clear();
+  if (G.started && save.room !== 'solo') netJoin(save.room, id);
   scene.background = skyTexture(def);
   scene.fog = new THREE.Fog(def.fog[0], def.fog[1], def.fog[2]);
   hemi.intensity = 1.5 * def.sun; sun.intensity = 2.1 * def.sun;
@@ -451,12 +477,14 @@ const touch = { mx: 0, mz: 0, jump: false, stickId: null, ox: 0, oy: 0, lookId: 
 const cam = { yaw: 0, pitch: 0.32, dist: 16, tx: 0, ty: 0, tz: 0, spin: 0, zoom: 0 };
 window.addEventListener('keydown', (e) => {
   if (G.modal === 'keypad') { keypadKey(e.key); e.preventDefault(); return; }
+  if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
   if (e.key === 'Escape') { closeModals(); return; }
   if (G.modal) return;
   keys.add(e.code);
   const ks = keySeen[e.code] || (keySeen[e.code] = { rep: false });
   ks.t = performance.now(); if (e.repeat) ks.rep = true;
   if (e.code === 'KeyB') openBook();
+  if (G.started && /^Digit[1-5]$/.test(e.code)) doEmote(EMOTES[+e.code.slice(5) - 1].id);
   if (e.code === 'KeyF') toggleFollow();
   if (e.code === 'KeyR' && G.started && !G.deadT) { G.pl.dead = true; die('kill'); }
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
@@ -617,6 +645,7 @@ function collectFruit(o) {
   ghostFruit(o);
   banner(meta);
   badgeToast(meta);
+  emit({ k: 'found', f: meta.id });
   const after = foundCount();
   for (const w of WORLDS) if (w.need > before && w.need <= after) setTimeout(() => msg(t.unlocked(nm(w.name)), 3500), 2600);
   if (worldFound(meta.w) === worldTotal(meta.w)) setTimeout(() => msg(t.worldDone(nm(WORLD[meta.w].name)), 3500), 4000);
@@ -732,8 +761,13 @@ function tick(dt) {
     G.av.position.set(pl.x, pl.y, pl.z);
     G.av.rotation.y = pl.yaw;
     const hs = Math.hypot(pl.vx, pl.vz) / 16;
-    animateAvatar(G.av, dt, { speed: hs, air: !pl.ground && !pl.climbing && pl.air > 0.08, climbing: pl.climbing });
+    const air = !pl.ground && !pl.climbing && pl.air > 0.08;
+    if (G.emoteT > 0 && (G.emoteT -= dt) <= 0) G.emote = '';
+    if (hs > 0.15 || air || pl.climbing) { G.emote = ''; G.emoteT = 0; }
+    animateAvatar(G.av, dt, { speed: hs, air, climbing: pl.climbing, emote: G.emote });
+    sendState({ x: pl.x, y: pl.y, z: pl.z, yaw: pl.yaw, speed: hs, air, climbing: pl.climbing, e: G.emote });
   }
+  updateRemotes(dt);
   // snow follows the camera
   if (G.snow) {
     const a = G.snow.geometry.attributes.position;
@@ -983,14 +1017,196 @@ function renderStart() {
   $('sAvatars').innerHTML = AVATARS.map((a) => `<button data-a="${a.id}" class="${a.id === save.avatar ? 'sel' : ''}"><img src="${avatarIcon(a.id)}" alt=""><span>${a.name}</span></button>`).join('');
   $('sAvatars').querySelectorAll('button').forEach((b) => b.onclick = () => { save.avatar = b.dataset.a; persist(); sfx.unlock(); sfx.play('click'); renderStart(); });
   $('sFruits').innerHTML = ['apple', 'banana', 'piratepineapple', 'burger', 'rainbowdragon', 'donut', 'kingmango', 'galaxy'].map((id) => `<img src="${fruitIcon(id)}" alt="">`).join('');
+  renderRooms();
   $('bLang').textContent = save.lang === 'zh' ? 'EN' : '中';
   for (const [id, k] of [['bBook', 'book'], ['bHome', 'home'], ['bReset', 'reset'], ['bHelp', 'help']]) $(id).title = t[k];
 }
+
+// ------------------------------------------------------------------ playing together (see net.js)
+const EMOTES = [{ id: 'wave', i: '👋' }, { id: 'cheer', i: '🎉' }, { id: 'dance', i: '💃' }, { id: 'heart', i: '❤️' }, { id: 'hi5', i: '✋' }];
+const EMO = Object.fromEntries(EMOTES.map((e) => [e.id, e.i]));
+const nameTag = (n) => textSprite([n || '?'], { scale: 0.5, bg: 'rgba(20,24,40,.62)' });
+function remoteFor(p) {
+  let r = G.remote.get(p.id);
+  if (r && r.avatar !== p.avatar) { dropRemote(p.id); r = null; }
+  if (!r) {
+    const av = makeAvatar(p.avatar);
+    const label = nameTag(p.name);
+    label.position.set(0, 6.4, 0); av.add(label);
+    r = { id: p.id, avatar: p.avatar, name: p.name, av, label, bubble: null, bubbleT: 0, emote: '', emoteT: 0, init: false };
+    G.group.add(av); G.remote.set(p.id, r);
+  }
+  if (r.name !== p.name) { r.name = p.name; const s2 = nameTag(p.name); r.label.material.map.dispose(); r.label.material.map = s2.material.map; r.label.scale.copy(s2.scale); }
+  return r;
+}
+function dropRemote(id) {
+  const r = G.remote.get(id); if (!r) return;
+  G.group.remove(r.av); r.label.material.map.dispose(); if (r.bubble) r.bubble.material.map.dispose();
+  G.remote.delete(id);
+}
+function bubble(r, text, secs = 3.5) {
+  if (r.bubble) { r.av.remove(r.bubble); r.bubble.material.map.dispose(); }
+  r.bubble = textSprite([text], { scale: 0.6, bg: 'rgba(255,255,255,.94)', color: '#2a2440' });
+  r.bubble.position.set(0, 8.3, 0); r.av.add(r.bubble); r.bubbleT = secs;
+}
+const angLerp = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * k;
+function updateRemotes(dt) {
+  prune();
+  for (const id of [...G.remote.keys()]) if (!net.peers.has(id)) dropRemote(id);
+  for (const p of net.peers.values()) {
+    if (!p.s) continue;
+    const r = remoteFor(p), s = p.s, av = r.av;
+    if (!r.init || Math.hypot(av.position.x - s.x, av.position.z - s.z) > 14) { av.position.set(s.x, s.y, s.z); av.rotation.y = s.yaw; r.init = true; }
+    const k = Math.min(1, dt * 10);
+    av.position.x += (s.x - av.position.x) * k; av.position.y += (s.y - av.position.y) * k; av.position.z += (s.z - av.position.z) * k;
+    av.rotation.y = angLerp(av.rotation.y, s.yaw, k);
+    if (r.emoteT > 0) r.emoteT -= dt;
+    animateAvatar(av, dt, { speed: s.sp, air: !!s.air, climbing: !!s.cl, emote: s.e || (r.emoteT > 0 ? r.emote : '') });
+    if (r.bubble && (r.bubbleT -= dt) <= 0) { av.remove(r.bubble); r.bubble.material.map.dispose(); r.bubble = null; }
+  }
+}
+// my own speech bubble: a sprite over my head, the same as everyone else sees
+const meB = { av: null, s: null };
+function myBubble(text) {
+  if (!G.av) return;
+  if (meB.s && meB.av) { meB.av.remove(meB.s); meB.s.material.map.dispose(); }
+  meB.av = G.av; meB.s = textSprite([text], { scale: 0.6, bg: 'rgba(255,255,255,.94)', color: '#2a2440' });
+  meB.s.position.set(0, 8.3, 0); G.av.add(meB.s);
+  clearTimeout(myBubble._t); myBubble._t = setTimeout(() => { if (meB.s && meB.av) { meB.av.remove(meB.s); meB.s.material.map.dispose(); meB.s = null; } }, 3500);
+}
+function nearestPeer(maxD = 7) {
+  let best = null, bd = maxD;
+  for (const r of G.remote.values()) { const d = Math.hypot(r.av.position.x - G.pl.x, r.av.position.y - G.pl.y, r.av.position.z - G.pl.z); if (d < bd) { bd = d; best = r; } }
+  return best;
+}
+function hi5Party(r) {
+  G.hi5To = G.hi5From = null;
+  G.emote = 'cheer'; G.emoteT = 2.5;
+  if (r) { r.emote = 'cheer'; r.emoteT = 2.5; confetti(r.av.position.x, r.av.position.y + 4, r.av.position.z, 0xffd23a); }
+  confetti(G.pl.x, G.pl.y + 4, G.pl.z, 0xff5a7a);
+  sfx.play('badge'); msg(tr().mpHi5(r ? r.name : '?'), 2200);
+}
+function doEmote(id) {
+  if (!G.started || G.deadT > 0) return;
+  const t = tr();
+  sfx.unlock(); sfx.play('click');
+  if (id === 'hi5') {
+    const r = nearestPeer();
+    if (!r) { msg(t.mpHi5None, 1600); return; }
+    G.pl.yaw = Math.atan2(r.av.position.x - G.pl.x, r.av.position.z - G.pl.z);
+    G.emote = 'hi5'; G.emoteT = 4;
+    if (G.hi5From && G.hi5From.id === r.id && G.t - G.hi5From.t < 5) { emit({ k: 'hi5ok', to: r.id }); hi5Party(r); return; }
+    G.hi5To = { id: r.id, t: G.t }; emit({ k: 'hi5', to: r.id }); msg(t.mpHi5Wait(r.name), 2500);
+    return;
+  }
+  G.emote = id; G.emoteT = 3;
+  myBubble(EMO[id]);
+  emit({ k: 'emote', e: id });
+}
+function doSay(i) {
+  if (!G.started) return;
+  sfx.unlock(); sfx.play('click');
+  myBubble(tr().says[i]);
+  emit({ k: 'say', i });
+}
+net.onEvent = (p) => {
+  const t = tr();
+  const peer = net.peers.get(p.id);
+  const r = peer && peer.s ? remoteFor(peer) : G.remote.get(p.id);
+  if (p.k === 'emote' && r && EMO[p.e]) { r.emote = p.e; r.emoteT = 3; bubble(r, EMO[p.e]); }
+  else if (p.k === 'say' && r && t.says[p.i]) bubble(r, t.says[p.i], 4);
+  else if (p.k === 'found' && FRUIT[p.f]) mpToast(t.mpFound(p.n, nm(FRUIT[p.f].name)), p.f);
+  else if (p.k === 'hi5' && p.to === myId()) {
+    if (G.hi5To && G.hi5To.id === p.id && G.t - G.hi5To.t < 5) { emit({ k: 'hi5ok', to: p.id }); hi5Party(r); }
+    else { G.hi5From = { id: p.id, t: G.t }; if (r) { r.emote = 'hi5'; r.emoteT = 4; } msg(t.mpHi5Ask(p.n), 2600); }
+  } else if (p.k === 'hi5ok' && p.to === myId()) hi5Party(r);
+};
+function mpToast(text, fruitId) {
+  const el = document.createElement('div'); el.className = 'toast mpt';
+  el.innerHTML = (fruitId ? `<img src="${fruitIcon(fruitId)}" alt="">` : '') + '<div><b></b></div>';
+  el.querySelector('b').textContent = text;
+  $('toasts').appendChild(el);
+  setTimeout(() => el.classList.add('on'), 30);
+  setTimeout(() => { el.classList.remove('on'); setTimeout(() => el.remove(), 500); }, 4200);
+}
+let lastRoster = null;
+net.onRoster = (list) => {
+  const t = tr(), ids = new Set(list.map((x) => x.id));
+  if (lastRoster && G.started) {
+    for (const x of list) if (x.id !== myId() && !lastRoster.has(x.id)) mpToast(t.mpCame(x.name || '?'));
+    for (const [id, n] of lastRoster) if (!ids.has(id) && id !== myId()) mpToast(t.mpLeft(n));
+  }
+  lastRoster = list.length ? new Map(list.map((x) => [x.id, x.name || '?'])) : null;
+  paintMpButton(); if (!$('mp').hidden) renderMp();
+};
+net.onStatus = () => { paintMpButton(); if (!$('mp').hidden) renderMp(); };
+function paintMpButton() {
+  const others = net.roster.filter((x) => x.id !== myId()).length;
+  $('bMp').innerHTML = '👥' + (others ? `<i>${others}</i>` : '');
+  $('bMp').classList.toggle('off', save.room === 'solo' || net.status !== 'on');
+  $('bMp').title = tr().mp;
+}
+const inviteLink = () => `${location.origin}${location.pathname}?room=${save.room}`;
+const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function renderMp() {
+  const t = tr(), el = $('mpBody');
+  const others = net.roster.filter((x) => x.id !== myId());
+  const here = others.filter((x) => x.world === G.wid), away = others.filter((x) => x.world !== G.wid);
+  const row = (x) => `<li><img src="${avatarIcon(AVATARS.some((a) => a.id === x.avatar) ? x.avatar : 'josh')}" alt=""><b>${esc(x.name || '?')}</b>${x.world !== G.wid && WORLD[x.world] ? `<small>${esc(nm(WORLD[x.world].name))}</small>` : ''}</li>`;
+  const priv = save.room !== 'public' && save.room !== 'solo';
+  el.innerHTML = `<div class="mproom"><b>${esc(t.mpRoom(save.room))}</b><span>${save.room === 'solo' ? '' : t.mpSt[net.status]}</span></div>` +
+    (priv ? `<div class="mpcode"><span>${save.room}</span><button id="mpCopy" class="ghost">${t.mpCopy}</button></div>` : '') +
+    (save.room === 'solo' ? '' : `<h4>${t.mpHere}</h4><ul class="mplist">${here.length ? here.map(row).join('') : `<li class="none">${t.mpAlone}</li>`}</ul>` + (away.length ? `<ul class="mplist away">${away.map(row).join('')}</ul>` : '')) +
+    `<h4>${t.mpEmotes}</h4><div class="mpbtns">${EMOTES.map((e, i) => `<button data-e="${e.id}" title="${i + 1}">${e.i}</button>`).join('')}</div>` +
+    `<h4>${t.mpSay}</h4><div class="mpbtns says">${t.says.map((x, i) => `<button data-s="${i}">${x}</button>`).join('')}</div>` +
+    `<p class="mpfoot"><small>${isTouch ? '' : t.mpKeys}</small><button id="mpSwitch" class="ghost">${t.mpSwitch}</button></p>`;
+  el.querySelectorAll('[data-e]').forEach((b) => b.onclick = () => doEmote(b.dataset.e));
+  el.querySelectorAll('[data-s]').forEach((b) => b.onclick = () => doSay(+b.dataset.s));
+  if ($('mpCopy')) $('mpCopy').onclick = () => {
+    const b = $('mpCopy');
+    try { navigator.clipboard.writeText(inviteLink()).then(() => { b.textContent = t.mpCopied; }, () => msg(inviteLink(), 5000)); } catch (e) { msg(inviteLink(), 5000); }
+  };
+  $('mpSwitch').onclick = () => { $('mp').hidden = true; netLeave(); G.started = false; renderStart(); $('start').hidden = false; resetInput(); };
+}
+// the room choice on the start screen
+function renderRooms() {
+  const t = tr();
+  $('sMpT').textContent = t.mpWith; $('sNameL').textContent = t.mpName; $('sNameTip').textContent = t.mpNameTip;
+  const nmIn = $('sName'); if (document.activeElement !== nmIn) nmIn.value = save.name || '';
+  nmIn.placeholder = (AVATARS.find((a) => a.id === save.avatar) || AVATARS[0]).name;
+  const mode = save.room === 'public' || save.room === 'solo' ? save.room : 'private';
+  $('sRooms').innerHTML = [['public', t.mpPublic], ['private', t.mpPrivate], ['solo', t.mpSolo]].map(([m, l]) => `<button data-m="${m}" class="${m === mode ? 'sel' : ''}">${l}</button>`).join('');
+  $('sRooms').querySelectorAll('button').forEach((b) => b.onclick = () => {
+    sfx.unlock(); sfx.play('click');
+    const m = b.dataset.m;
+    if (m === 'private') save.room = save.lastCode = save.lastCode || newCode(); else save.room = m;
+    persist(); renderRooms();
+  });
+  $('sPriv').hidden = mode !== 'private';
+  $('sNew').textContent = t.mpNew; $('sJoin').textContent = t.mpJoin; $('sCode').placeholder = t.mpCodePh;
+  $('sRoomTip').textContent = mode === 'public' ? t.mpPublicTip : mode === 'solo' ? t.mpSoloTip : t.mpPrivateTip(save.room);
+  $('sCodeNow').textContent = mode === 'private' ? save.room : '';
+}
+$('sName').addEventListener('input', () => { save.name = $('sName').value.trim() ? cleanName($('sName').value) : ''; persist(); });
+$('sNew').onclick = () => { sfx.play('click'); save.room = save.lastCode = newCode(); persist(); renderRooms(); };
+$('sJoin').onclick = () => {
+  const c = cleanCode($('sCode').value);
+  if (c.length !== 4) { $('sCode').classList.add('bad'); setTimeout(() => $('sCode').classList.remove('bad'), 600); return; }
+  sfx.play('click'); save.room = save.lastCode = c; persist(); $('sCode').value = ''; renderRooms();
+};
+$('sCode').addEventListener('input', () => { const v = cleanCode($('sCode').value); if ($('sCode').value !== v) $('sCode').value = v; });
+$('sCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('sJoin').onclick(); });
+$('bMp').onclick = () => { sfx.play('click'); const p = $('mp'); p.hidden = !p.hidden; if (!p.hidden) renderMp(); };
+$('mpClose').onclick = () => { $('mp').hidden = true; };
 $('sPlay').onclick = startGame;
 function startGame() {
   sfx.unlock();
   $('start').hidden = true; G.started = true;
+  save.name = cleanName($('sName').value || save.name || (AVATARS.find((a) => a.id === save.avatar) || AVATARS[0]).name + Math.floor(10 + Math.random() * 90)); persist();
+  setMe({ name: save.name, avatar: save.avatar });
   if (!G.wid) { loadWorld('plaza'); }
+  if (save.room !== 'solo') netJoin(save.room, G.wid); else netLeave();
+  paintMpButton();
   worldCard();
   music.play(G.wid);
 }
@@ -1012,7 +1228,7 @@ paintFollow();
 $('bMusic').onclick = () => { save.music = !save.music; persist(); applySound(); };
 $('bLang').onclick = () => {
   save.lang = save.lang === 'zh' ? 'en' : 'zh'; persist();
-  renderStart(); updateHUD(); updateLabels(); if (G.modal === 'book') renderBook(); if (G.modal === 'help') renderHelp();
+  renderStart(); updateHUD(); updateLabels(); if (G.modal === 'book') renderBook(); if (G.modal === 'help') renderHelp(); if (!$('mp').hidden) renderMp(); paintMpButton();
   G.sign = undefined;
 };
 function applySound() {
@@ -1040,4 +1256,5 @@ if (params.has('clean')) document.body.classList.add('clean');
 if (params.has('book')) openBook();
 if (params.has('cam')) { const [y, p, d] = params.get('cam').split(',').map(Number); cam.yaw = y; cam.pitch = p; cam.dist = d; }
 requestAnimationFrame(frame);
-window.FTF = { G, cam, save, travel, loadWorld, collectFruit, openBook, inputVector, keys, touch, startGame, stepTest: (dt) => tick(dt) };
+paintMpButton();
+window.FTF = { G, cam, save, travel, loadWorld, collectFruit, openBook, inputVector, keys, touch, startGame, net, doEmote, doSay, stepTest: (dt) => tick(dt) };

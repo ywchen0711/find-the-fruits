@@ -61,17 +61,28 @@ export function makeAvatar(id) {
   return root;
 }
 
-// state: { speed (0..1), air (bool), climbing (bool) }
+// state: { speed (0..1), air (bool), climbing (bool), emote ('wave'|'cheer'|'dance'|'heart'|'hi5'|'') }
 export function animateAvatar(av, dt, st) {
   const u = av.userData;
   u.phase += dt * (st.climbing ? 9 : 11) * Math.max(0.2, st.speed);
-  let la = 0, ra = 0, ll = 0, rl = 0;
+  u.et = (u.et || 0) + dt;
+  let la = 0, ra = 0, ll = 0, rl = 0, raz = 0, laz = 0, bob = 0, spin = 0;
+  const e = st.speed > 0.15 || st.air || st.climbing ? '' : st.emote || '';
   if (st.climbing) { la = -2.6 + Math.sin(u.phase) * 0.6; ra = -2.6 - Math.sin(u.phase) * 0.6; ll = Math.sin(u.phase) * 0.5; rl = -ll; }
   else if (st.air) { la = -2.9; ra = -2.9; ll = 0.3; rl = -0.3; }
   else if (st.speed > 0.05) { const s = Math.sin(u.phase) * 0.9 * Math.min(1, st.speed); la = s; ra = -s; ll = -s; rl = s; }
+  else if (e === 'wave') { ra = -2.9; raz = 0.5 + Math.sin(u.et * 12) * 0.45; }
+  else if (e === 'cheer') { la = ra = -3; laz = -0.35; raz = 0.35; bob = Math.abs(Math.sin(u.et * 9)) * 0.7; }
+  else if (e === 'dance') { const s = Math.sin(u.et * 8); la = -1.6 + s; ra = -1.6 - s; ll = s * 0.4; rl = -s * 0.4; bob = Math.abs(s) * 0.35; spin = Math.sin(u.et * 4) * 0.6; }
+  else if (e === 'heart') { la = ra = -1.4; laz = 0.5; raz = -0.5; }
+  else if (e === 'hi5') { ra = -2.6; raz = 0.2; }
   const k = Math.min(1, dt * 14);
   u.armL.rotation.x += (la - u.armL.rotation.x) * k;
   u.armR.rotation.x += (ra - u.armR.rotation.x) * k;
+  u.armL.rotation.z += (laz - u.armL.rotation.z) * k;
+  u.armR.rotation.z += (raz - u.armR.rotation.z) * k;
   u.legL.rotation.x += (ll - u.legL.rotation.x) * k;
   u.legR.rotation.x += (rl - u.legR.rotation.x) * k;
+  u.body.position.y += (bob - u.body.position.y) * k;
+  u.body.rotation.y += (spin - u.body.rotation.y) * k;
 }
