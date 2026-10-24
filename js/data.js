@@ -254,9 +254,10 @@ export const WORLDS = [
       L.palm(-15, 40, 12); L.fruit('coconut', -12, 1.4, 40);
       for (const [x, z, h] of [[30, 52, 11], [-40, 25, 13], [50, 20, 10], [-52, -5, 12], [15, 10, 11]]) L.palm(x, z, h);
       // hut + mango
-      L.house(22, 35, 10, 10, 6, 0xc89a5a, 0xd8b04a, 's', { mat: 'wood', roofMat: 'grass' });
-      L.col(22, 32, 3, 3, 2.5, C.wood2, { mat: 'wood' });
-      L.fruit('mango', 22, 4, 32);
+      // the roof is high enough to walk in standing up and to jump onto the table; the table is small enough to grab from the floor
+      L.house(22, 35, 10, 10, 8, 0xc89a5a, 0xd8b04a, 's', { mat: 'wood', roofMat: 'grass' });
+      L.col(22, 33, 2, 2, 2, C.wood2, { mat: 'wood' });
+      L.fruit('mango', 22, 3.4, 33);
       // key behind the big rock, locked treasure house (lime)
       L.col(-42, 48, 7, 7, 5, C.rock, { mat: 'stone' });
       L.box(-42, 1.5, 41, 1, 1, 1, C.gold, { kind: 'trigger', key: 'k1' });

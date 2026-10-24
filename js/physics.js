@@ -1,6 +1,6 @@
 // Player physics + world runtime state (moving parts, vanishing blocks, doors, flags). No three.js here,
 // so tools/phys-test.mjs can drive it in Node.
-import { PHYS } from './data.js?v=2';
+import { PHYS } from './data.js?v=3';
 
 const { WALK, JUMPV, G, TRAMPV, CLIMB, HW, H, STEP } = PHYS;
 const EPS = 1e-6;

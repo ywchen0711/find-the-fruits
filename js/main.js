@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { WORLDS, WORLD, FRUITS, FRUIT, TIERS, CATS, buildWorld } from './data.js?v=2';
-import { World, newPlayer, stepPlayer } from './physics.js?v=2';
+import { WORLDS, WORLD, FRUITS, FRUIT, TIERS, CATS, buildWorld } from './data.js?v=3';
+import { World, newPlayer, stepPlayer } from './physics.js?v=3';
 import { makeFruit, animateFruit } from './fruitmodel.js?v=2';
 import { makeAvatar, animateAvatar, AVATARS } from './avatar.js?v=2';
 import { sfx, music } from './audio.js?v=2';

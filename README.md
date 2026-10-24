@@ -28,3 +28,4 @@ On screen: ⟲ ⟳ turn the camera (hold), ＋ － zoom, 🎥 follow camera on/o
 - `js/main.js` – rendering, input, camera, triggers and UI · `js/fruitmodel.js` – procedural fruits with faces and accessories · `js/avatar.js` – blocky avatars · `js/audio.js` – synth sounds + music
 - `tools/phys-test.mjs` – physics regression tests (lifts, walls, steps)
 - `tools/check.mjs` – proves every fruit is reachable: a jump graph between surfaces, calibrated against the real physics (`node tools/check.mjs`)
+- `tools/pickup-check.mjs` – proves every fruit can actually be picked up: a free spot for the player's real box (no wall, roof or furniture in the way) within collect range, standing or jumping, and a way in and out (`node tools/pickup-check.mjs`)
